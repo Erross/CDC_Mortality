@@ -20,12 +20,13 @@ class ComprehensiveMortalityDataCompiler:
     Compiles comprehensive CDC all-cause mortality data from 2015-present.
     Uses local file for complete 2019 state-level data.
     Outputs separate files for US national data and state-level data.
+    Version 3.1: Fixed NYC/NY combination across all data sources.
     """
 
     def __init__(self):
         self.session = requests.Session()
         self.session.headers.update({
-            'User-Agent': 'Comprehensive-Mortality-Compiler/3.0',
+            'User-Agent': 'Comprehensive-Mortality-Compiler/3.1',
             'Accept': 'text/csv,application/json'
         })
 
@@ -268,6 +269,57 @@ class ComprehensiveMortalityDataCompiler:
             logger.warning(f"Could not parse date {date_str}: {e}")
             return None, None
 
+    def combine_nyc_with_ny(self, df: pd.DataFrame, data_source_name: str) -> pd.DataFrame:
+        """Helper function to combine NYC and NY state data into single NY record."""
+        if df.empty:
+            return df
+
+        # Check for NYC data before combining
+        unique_states = df['state'].unique()
+        nyc_in_data = any('New York City' in str(s) or 'NYC' in str(s) for s in unique_states)
+        ny_in_data = 'New York' in unique_states
+
+        logger.info(f"{data_source_name}: Found NYC={nyc_in_data}, NY={ny_in_data}")
+
+        if nyc_in_data and ny_in_data:
+            logger.info(f"{data_source_name}: Found both New York and New York City - combining them...")
+
+            # Create a temporary grouping column
+            df['state_group'] = df['state'].apply(
+                lambda x: 'New York' if ('New York City' in str(x) or 'NYC' in str(x) or x == 'New York') else x
+            )
+
+            # Group by week and state_group, summing deaths
+            groupby_cols = ['year', 'week', 'mmwr_week', 'state_group']
+            if 'week_ending_date' in df.columns:
+                groupby_cols.append('week_ending_date')
+
+            df_grouped = df.groupby(groupby_cols, dropna=False).agg({'deaths': 'sum'}).reset_index()
+
+            # Add back other columns that were lost in grouping
+            for col in df.columns:
+                if col not in df_grouped.columns and col not in ['state', 'state_group', 'deaths']:
+                    # Take first value for non-numeric columns
+                    first_values = df.groupby('state_group')[col].first().reset_index()
+                    df_grouped = df_grouped.merge(first_values, on='state_group', how='left')
+
+            # Rename state_group back to state
+            df_grouped = df_grouped.rename(columns={'state_group': 'state'})
+            df = df_grouped
+
+            # Log verification
+            ny_total_deaths = df[df['state'] == 'New York']['deaths'].sum()
+            logger.info(f"{data_source_name}: Combined New York total deaths: {ny_total_deaths:,.0f}")
+
+        elif nyc_in_data:
+            # If only NYC is in the data, rename it to New York
+            logger.info(f"{data_source_name}: Found New York City but not New York state - renaming NYC to New York")
+            df['state'] = df['state'].apply(
+                lambda x: 'New York' if ('New York City' in str(x) or 'NYC' in str(x)) else x
+            )
+
+        return df
+
     def process_local_2019_file(self, filename: str = 'all_state_data_for_2019.csv') -> pd.DataFrame:
         """Process the local file containing complete 2019 state-level data."""
         try:
@@ -345,42 +397,8 @@ class ComprehensiveMortalityDataCompiler:
             df = df[~df['state'].isin(us_national_variants)]
             logger.info(f"After removing US national records: {len(df)} records remain")
 
-            # Handle New York City separately
-            nyc_in_data = any('New York City' in str(s) or 'NYC' in str(s) for s in unique_states)
-            ny_in_data = 'New York' in unique_states
-
-            if nyc_in_data and ny_in_data:
-                logger.info("Found both New York and New York City - combining them...")
-
-                # Create a temporary grouping column
-                df['state_group'] = df['state'].apply(
-                    lambda x: 'New York' if ('New York City' in str(x) or 'NYC' in str(x) or x == 'New York') else x
-                )
-
-                # Group by week and state_group, summing deaths
-                df_grouped = df.groupby(['year', 'week', 'mmwr_week', 'week_ending_date', 'state_group'],
-                                        dropna=False).agg({'deaths': 'sum'}).reset_index()
-
-                # Rename state_group back to state
-                df_grouped = df_grouped.rename(columns={'state_group': 'state'})
-                df = df_grouped
-
-                # Check specific weeks to verify
-                week1_date = '2019-01-05'  # Saturday
-                week2_date = '2019-01-12'  # Saturday
-
-                for date_check in [week1_date, week2_date]:
-                    week_data = df[df['week_ending_date'].str.contains(date_check, na=False)]
-                    if not week_data.empty:
-                        ny_deaths = week_data[week_data['state'] == 'New York']['deaths'].sum()
-                        logger.info(f"New York total deaths for week ending ~{date_check}: {ny_deaths:,.0f}")
-
-            elif nyc_in_data:
-                # If only NYC is in the data, rename it to New York
-                logger.info("Found New York City but not New York state - renaming NYC to New York")
-                df['state'] = df['state'].apply(
-                    lambda x: 'New York' if ('New York City' in str(x) or 'NYC' in str(x)) else x
-                )
+            # COMBINE NYC WITH NY STATE using the new helper function
+            df = self.combine_nyc_with_ny(df, "Local 2019 File")
 
             # Add metadata
             df['data_source'] = 'Local 2019 File'
@@ -561,6 +579,9 @@ class ComprehensiveMortalityDataCompiler:
             df_filtered['week'] = df_filtered['mmwr_week']
             df_filtered['data_source'] = 'CDC Provisional'
 
+            # COMBINE NYC WITH NY STATE
+            df_filtered = self.combine_nyc_with_ny(df_filtered, "CDC Provisional")
+
             columns_to_keep = ['year', 'week', 'mmwr_week', 'week_ending_date', 'state', 'deaths', 'data_source']
             available_columns = [col for col in columns_to_keep if col in df_filtered.columns]
             df_filtered = df_filtered[available_columns]
@@ -624,6 +645,9 @@ class ComprehensiveMortalityDataCompiler:
                                   (df_filtered['week'] <= 53)]
 
         df_filtered['data_source'] = 'Archived NCHS'
+
+        # COMBINE NYC WITH NY STATE
+        df_filtered = self.combine_nyc_with_ny(df_filtered, "Archived NCHS")
 
         columns_to_keep = ['year', 'week', 'mmwr_week', 'state', 'deaths', 'data_source']
         available_columns = [col for col in columns_to_keep if col in df_filtered.columns]
@@ -726,7 +750,7 @@ class ComprehensiveMortalityDataCompiler:
         df = df.drop('completeness_score', axis=1)
         logger.info(f"After deduplication: {len(df)} records")
 
-        # State name standardization
+        # State name standardization (backup - should already be done by combine_nyc_with_ny)
         state_mapping = {
             'United States': 'United States',
             'New York City': 'New York'
@@ -793,6 +817,93 @@ class ComprehensiveMortalityDataCompiler:
         stats['yearly_totals'] = df.groupby('year')['deaths'].sum().to_dict()
 
         return stats
+
+    def validate_2019_vs_2018_data(self, df: pd.DataFrame):
+        """Validate that 2019 data is reasonable compared to 2018 data."""
+        if df.empty:
+            return
+
+        logger.info("Validating 2019 data against 2018 baseline...")
+
+        # Get 2018 and 2019 data for comparison
+        df_2018 = df[df['year'] == 2018]
+        df_2019 = df[df['year'] == 2019]
+
+        if df_2018.empty or df_2019.empty:
+            logger.warning("Cannot validate 2019 data: missing 2018 or 2019 data")
+            return
+
+        # Focus on state-level data (exclude US national)
+        state_df_2018 = df_2018[df_2018['state'] != 'United States']
+        state_df_2019 = df_2019[df_2019['state'] != 'United States']
+
+        if state_df_2018.empty or state_df_2019.empty:
+            logger.warning("Cannot validate: missing state-level data for 2018 or 2019")
+            return
+
+        # Calculate annual totals by state
+        totals_2018 = state_df_2018.groupby('state')['deaths'].sum()
+        totals_2019 = state_df_2019.groupby('state')['deaths'].sum()
+
+        # Focus on New York specifically since that's where we expect issues
+        if 'New York' in totals_2018.index and 'New York' in totals_2019.index:
+            ny_2018 = totals_2018['New York']
+            ny_2019 = totals_2019['New York']
+            ny_change = ((ny_2019 - ny_2018) / ny_2018) * 100
+
+            print("\n" + "=" * 70)
+            print("2019 vs 2018 DATA VALIDATION - NEW YORK FOCUS")
+            print("=" * 70)
+            print(f"New York 2018 total deaths: {ny_2018:,.0f}")
+            print(f"New York 2019 total deaths: {ny_2019:,.0f}")
+            print(f"Year-over-year change: {ny_change:+.1f}%")
+
+            # Flag excessive changes
+            if abs(ny_change) > 10:
+                print(f"⚠️  WARNING: New York deaths changed by {ny_change:+.1f}% - this seems excessive!")
+                print("    Normal year-over-year change should be < ±5%")
+                print("    This might indicate double-counting or missing data issues")
+            else:
+                print(f"✓  New York change of {ny_change:+.1f}% appears reasonable")
+
+        # Overall state totals comparison
+        total_2018 = totals_2018.sum()
+        total_2019 = totals_2019.sum()
+        overall_change = ((total_2019 - total_2018) / total_2018) * 100
+
+        print(f"\nOverall state totals:")
+        print(f"2018 total state deaths: {total_2018:,.0f}")
+        print(f"2019 total state deaths: {total_2019:,.0f}")
+        print(f"Overall change: {overall_change:+.1f}%")
+
+        if abs(overall_change) > 5:
+            print(f"⚠️  WARNING: Overall state deaths changed by {overall_change:+.1f}% - investigate!")
+        else:
+            print(f"✓  Overall change of {overall_change:+.1f}% appears reasonable")
+
+        # Check data completeness
+        states_2018 = set(totals_2018.index)
+        states_2019 = set(totals_2019.index)
+
+        missing_in_2019 = states_2018 - states_2019
+        extra_in_2019 = states_2019 - states_2018
+
+        if missing_in_2019:
+            print(f"⚠️  States missing in 2019: {list(missing_in_2019)}")
+        if extra_in_2019:
+            print(f"ℹ️  New states in 2019: {list(extra_in_2019)}")
+
+        print(f"\nStates with data - 2018: {len(states_2018)}, 2019: {len(states_2019)}")
+
+        # Check for potential NYC double-counting by looking at top states
+        top_states_2019 = totals_2019.nlargest(5)
+        print(f"\nTop 5 states by deaths in 2019:")
+        for state, deaths in top_states_2019.items():
+            if state in totals_2018:
+                change = ((deaths - totals_2018[state]) / totals_2018[state]) * 100
+                print(f"  {state}: {deaths:,.0f} ({change:+.1f}% vs 2018)")
+            else:
+                print(f"  {state}: {deaths:,.0f} (new in 2019)")
 
     def save_datasets(self, df: pd.DataFrame):
         """Save separate CSV files for US national data and state-level data with population."""
@@ -933,12 +1044,14 @@ class ComprehensiveMortalityDataCompiler:
 
     def compile_comprehensive_data(self):
         """Main method to compile comprehensive all-cause mortality data from 2015 to present."""
-        print("ALL-CAUSE MORTALITY DATA COMPILER v3.0")
+        print("ALL-CAUSE MORTALITY DATA COMPILER v3.1")
         print("=" * 70)
         print("Features:")
         print("  • All-cause mortality only")
         print("  • Complete 2019 data from local file")
+        print("  • Consistent NYC+NY combination across all sources")
         print("  • Separate US national and state-level outputs")
+        print("  • Data validation to check 2019 vs 2018 consistency")
         print("  • Data sources: World Mortality, CDC APIs, Archives, Local 2019")
         print("")
 
@@ -993,8 +1106,12 @@ class ComprehensiveMortalityDataCompiler:
             logger.error("No data remaining after processing!")
             return
 
+        # NEW: Validate 2019 data
+        print("\nStep 6: Validating 2019 data consistency...")
+        self.validate_2019_vs_2018_data(final_df)
+
         # Save separate files
-        print("\nStep 6: Saving separate US national and state-level datasets...")
+        print("\nStep 7: Saving separate US national and state-level datasets...")
         self.save_datasets(final_df)
 
         print("\n" + "=" * 90)
@@ -1005,7 +1122,9 @@ class ComprehensiveMortalityDataCompiler:
         print("  2. state_mortality_2015_present.csv - State-level data")
         print("\nData notes:")
         print("  • All data is all-cause mortality only")
+        print("  • NYC consistently combined with NY state across all years")
         print("  • 2019 data is complete from your local file")
+        print("  • Data validation performed to ensure consistency")
         print("  • Most recent weeks may be provisional and subject to revision")
         print("\nUsage:")
         print("  import pandas as pd")
