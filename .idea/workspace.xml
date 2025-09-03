@@ -4,12 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fdd174da-1edf-48d2-98bd-8ffe3bf1338e" name="Changes" comment="Should have all data now">
-      <change afterPath="$PROJECT_DIR$/CDC_All_Cause_Death_Compiler.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/all_state_data_for_2019.csv" afterDir="false" />
+    <list default="true" id="fdd174da-1edf-48d2-98bd-8ffe3bf1338e" name="Changes" comment="Working version - missing 2020 week 1 and 2021 final week">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cdc_mortality_compiler.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/comprehensive_mortality_data_2015_present.csv" beforeDir="false" afterPath="$PROJECT_DIR$/comprehensive_mortality_data_2015_present.csv" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -136,11 +132,20 @@
       <option name="project" value="LOCAL" />
       <updated>1756411727585</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Working version - missing 2020 week 1 and 2021 final week">
+      <option name="closed" value="true" />
+      <created>1756909668101</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1756909668101</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Should have all data now" />
-    <option name="LAST_COMMIT_MESSAGE" value="Should have all data now" />
+    <MESSAGE value="Working version - missing 2020 week 1 and 2021 final week" />
+    <option name="LAST_COMMIT_MESSAGE" value="Working version - missing 2020 week 1 and 2021 final week" />
   </component>
 </project>
