@@ -5,28 +5,39 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fdd174da-1edf-48d2-98bd-8ffe3bf1338e" name="Changes" comment="Should have all data now">
+      <change afterPath="$PROJECT_DIR$/CDC_All_Cause_Death_Compiler.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/all_state_data_for_2019.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cdc_mortality_compiler.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/comprehensive_mortality_data_2015_present.csv" beforeDir="false" afterPath="$PROJECT_DIR$/comprehensive_mortality_data_2015_present.csv" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "Erross"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Erross&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/Erross/CDC_Mortality",
-    "accountId": "c9b683eb-f041-47b1-a10b-f612a7f37eab"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/Erross/CDC_Mortality&quot;,
+    &quot;accountId&quot;: &quot;c9b683eb-f041-47b1-a10b-f612a7f37eab&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 8
 }</component>
@@ -38,7 +49,9 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Python.2019only.executor": "Run",
     "Python.cdc_mortality_compiler.executor": "Run",
+    "Python.missing weeks test.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "master",
     "ignore.virus.scanning.warn.message": "true",
@@ -47,6 +60,9 @@
   }
 }]]></component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\ewanr\PycharmProjects\CDC Mortality Data" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\ewanr\PycharmProjects\CDC Mortality Data" />
     </key>
@@ -104,7 +120,23 @@
       <option name="project" value="LOCAL" />
       <updated>1756401626884</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Should have all data now">
+      <option name="closed" value="true" />
+      <created>1756411702291</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1756411702291</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Should have all data now">
+      <option name="closed" value="true" />
+      <created>1756411727585</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1756411727585</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
