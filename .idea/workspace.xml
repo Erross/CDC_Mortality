@@ -4,9 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fdd174da-1edf-48d2-98bd-8ffe3bf1338e" name="Changes" comment="Readme added">
+    <list default="true" id="fdd174da-1edf-48d2-98bd-8ffe3bf1338e" name="Changes" comment="Removed unneeded csv file">
+      <change afterPath="$PROJECT_DIR$/mortality_dashboard.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CDC_All_Cause_Death_Compiler.py" beforeDir="false" afterPath="$PROJECT_DIR$/CDC_All_Cause_Death_Compiler.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -50,6 +50,7 @@
     "Python.CDC_All_Cause_Death_Compiler.executor": "Run",
     "Python.cdc_mortality_compiler.executor": "Run",
     "Python.missing weeks test.executor": "Run",
+    "Python.mortality_dashboard.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "master",
     "ignore.virus.scanning.warn.message": "true",
@@ -150,13 +151,31 @@
       <option name="project" value="LOCAL" />
       <updated>1756914060109</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="NYC/NY State issue fixed">
+      <option name="closed" value="true" />
+      <created>1756920749186</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1756920749186</updated>
+    </task>
+    <task id="LOCAL-00007" summary="Removed unneeded csv file">
+      <option name="closed" value="true" />
+      <created>1756922869431</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1756922869431</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Should have all data now" />
     <MESSAGE value="Working version - missing 2020 week 1 and 2021 final week" />
     <MESSAGE value="Readme added" />
-    <option name="LAST_COMMIT_MESSAGE" value="Readme added" />
+    <MESSAGE value="NYC/NY State issue fixed" />
+    <MESSAGE value="Removed unneeded csv file" />
+    <option name="LAST_COMMIT_MESSAGE" value="Removed unneeded csv file" />
   </component>
 </project>
