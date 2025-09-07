@@ -246,7 +246,11 @@ def main():
     with st.sidebar:
         # Dataset selection
         st.header("Dataset")
-        dataset_choice = st.radio("", ["State-Level Data", "US National Data"])
+        dataset_choice = st.radio(
+            "Choose dataset type:",
+            ["State-Level Data", "US National Data"],
+            label_visibility="collapsed"
+        )
 
         # State filter (only for state-level data)
         if dataset_choice == "State-Level Data":
@@ -254,9 +258,10 @@ def main():
             st.header("State Filter")
             available_states = ['All States'] + sorted(current_data['state'].unique().tolist())
             selected_states = st.multiselect(
-                "",
+                "Select states to include:",
                 available_states,
-                default=['All States']
+                default=['All States'],
+                label_visibility="collapsed"
             )
             if not selected_states:
                 selected_states = ['All States']
