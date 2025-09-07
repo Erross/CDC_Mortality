@@ -147,6 +147,25 @@ def create_chart(df, selected_states, chart_type):
         y_col = 'deaths'
         title = f'Raw Deaths per MMWR Week - {title_suffix}'
         y_title = 'Deaths'
+    elif chart_type == 'deaths_per_100k':
+        # Check if population data is available
+        if 'population' not in plot_data.columns:
+            st.error(
+                "Population data not found. Please add a 'population' column to your data for per-capita calculations.")
+            return go.Figure()
+
+        # For per-capita calculations, we need to aggregate differently
+        # Sum deaths and population, then calculate rate
+        agg_data = plot_data.groupby(['year', 'mmwr_week']).agg({
+            'deaths': 'sum',
+            'population': 'sum'
+        }).reset_index()
+
+        # Calculate deaths per 100k
+        agg_data['deaths_per_100k'] = (agg_data['deaths'] / agg_data['population']) * 100000
+        y_col = 'deaths_per_100k'
+        title = f'Deaths per 100k Population per MMWR Week - {title_suffix}'
+        y_title = 'Deaths per 100k Population'
     elif chart_type == 'deviation_avg':
         agg_data = plot_data.groupby(['year', 'mmwr_week'])['deviation_from_avg'].sum().reset_index()
         y_col = 'deviation_from_avg'
@@ -169,13 +188,19 @@ def create_chart(df, selected_states, chart_type):
     for year in sorted(agg_data['year'].unique()):
         year_data = agg_data[agg_data['year'] == year]
 
+        # Format the hover template based on chart type
+        if chart_type == 'deaths_per_100k':
+            hover_template = f'<b>Year {year}</b><br>Week: %{{x}}<br>{y_title}: %{{y:,.1f}}<extra></extra>'
+        else:
+            hover_template = f'<b>Year {year}</b><br>Week: %{{x}}<br>{y_title}: %{{y:,.0f}}<extra></extra>'
+
         fig.add_trace(go.Scatter(
             x=year_data['mmwr_week'],
             y=year_data[y_col],
             mode='lines',
             name=str(year),
             line=dict(color=get_color_for_year(year), width=2),
-            hovertemplate=f'<b>Year {year}</b><br>Week: %{{x}}<br>{y_title}: %{{y:,.0f}}<extra></extra>',
+            hovertemplate=hover_template,
             showlegend=False
         ))
 
@@ -218,6 +243,31 @@ def calculate_metric(df, selected_states, metric_type):
 
     if metric_type == 'total_deaths':
         return int(filtered_data['deaths'].sum())
+    elif metric_type == 'avg_deaths_per_100k':
+        # Calculate average deaths per 100k across all time periods
+        if 'population' not in filtered_data.columns:
+            return 0
+        total_deaths = filtered_data['deaths'].sum()
+        total_population_years = filtered_data['population'].sum()
+        if total_population_years == 0:
+            return 0
+        # Calculate average weekly rate and annualize it (approximately)
+        weeks_in_data = len(filtered_data)
+        avg_weekly_rate = (total_deaths / total_population_years) * 100000 * weeks_in_data
+        return round(avg_weekly_rate * 52.18 / weeks_in_data, 1)  # Annualized rate
+    elif metric_type == 'peak_deaths_per_100k':
+        # Find the highest weekly deaths per 100k rate
+        if 'population' not in filtered_data.columns:
+            return 0
+        # Group by year/week and calculate rates
+        weekly_rates = filtered_data.groupby(['year', 'mmwr_week']).agg({
+            'deaths': 'sum',
+            'population': 'sum'
+        }).reset_index()
+        if len(weekly_rates) == 0 or weekly_rates['population'].sum() == 0:
+            return 0
+        weekly_rates['rate_per_100k'] = (weekly_rates['deaths'] / weekly_rates['population']) * 100000
+        return round(weekly_rates['rate_per_100k'].max(), 1)
     elif metric_type == 'total_above_avg':
         # Focus on 2020-2022 period for pandemic impact
         pandemic_data = filtered_data[(filtered_data['year'] >= 2020) & (filtered_data['year'] <= 2022)]
@@ -273,13 +323,15 @@ def main():
     # Create radio button for view selection
     view_choice = st.radio(
         "Select View:",
-        ["Raw Deaths", "Deviation from Average", "Deviation from Expected"],
+        ["Raw Deaths", "Deaths per 100k", "Deviation from Average", "Deviation from Expected"],
         horizontal=True,
         key="view_selector"
     )
 
     # Calculate metrics once
     total_deaths = calculate_metric(current_data, selected_states, 'total_deaths')
+    avg_deaths_per_100k = calculate_metric(current_data, selected_states, 'avg_deaths_per_100k')
+    peak_deaths_per_100k = calculate_metric(current_data, selected_states, 'peak_deaths_per_100k')
     total_above_avg = calculate_metric(current_data, selected_states, 'total_above_avg')
     total_above_expected = calculate_metric(current_data, selected_states, 'total_above_expected')
 
@@ -290,6 +342,9 @@ def main():
 
         if view_choice == "Raw Deaths":
             st.metric("Total Deaths", f"{total_deaths:,}")
+        elif view_choice == "Deaths per 100k":
+            st.metric("Average Annual Rate", f"{avg_deaths_per_100k}")
+            st.metric("Peak Weekly Rate", f"{peak_deaths_per_100k}")
         elif view_choice == "Deviation from Average":
             st.metric("Deaths Above Average (2020-2022)", f"{total_above_avg:,}")
         elif view_choice == "Deviation from Expected":
@@ -314,6 +369,15 @@ def main():
         st.markdown("This chart shows the absolute number of deaths per week over time.")
         fig = create_chart(current_data, selected_states, 'raw')
         st.plotly_chart(fig, use_container_width=True)
+
+    elif view_choice == "Deaths per 100k":
+        st.header("Deaths per 100k Population per MMWR Week")
+        st.markdown(
+            "This chart shows the deaths per 100,000 population per week, allowing comparison between different population sizes.")
+        fig = create_chart(current_data, selected_states, 'deaths_per_100k')
+        st.plotly_chart(fig, use_container_width=True)
+        st.info(
+            "Interpretation: This normalizes for population size, making it easier to compare mortality rates across different states or regions.")
 
     elif view_choice == "Deviation from Average":
         st.header("Deviation from 2015-2019 Average")
