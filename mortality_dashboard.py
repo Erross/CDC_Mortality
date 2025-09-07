@@ -236,50 +236,85 @@ def create_chart(df, selected_states, chart_type):
 
 def calculate_metric(df, selected_states, metric_type):
     """Calculate metrics for sidebar"""
-    if selected_states == ['All States']:
-        filtered_data = df.copy()
-    else:
-        filtered_data = df[df['state'].isin(selected_states)]
+    try:
+        if selected_states == ['All States']:
+            filtered_data = df.copy()
+        else:
+            filtered_data = df[df['state'].isin(selected_states)]
 
-    if metric_type == 'total_deaths':
-        return int(filtered_data['deaths'].sum())
-    elif metric_type == 'avg_deaths_per_100k':
-        # Calculate average deaths per 100k across all time periods
-        if 'population' not in filtered_data.columns:
-            return 0
-        total_deaths = filtered_data['deaths'].sum()
-        total_population_years = filtered_data['population'].sum()
-        if total_population_years == 0:
-            return 0
-        # Calculate average weekly rate and annualize it (approximately)
-        weeks_in_data = len(filtered_data)
-        avg_weekly_rate = (total_deaths / total_population_years) * 100000 * weeks_in_data
-        return round(avg_weekly_rate * 52.18 / weeks_in_data, 1)  # Annualized rate
-    elif metric_type == 'peak_deaths_per_100k':
-        # Find the highest weekly deaths per 100k rate
-        if 'population' not in filtered_data.columns:
-            return 0
-        # Group by year/week and calculate rates
-        weekly_rates = filtered_data.groupby(['year', 'mmwr_week']).agg({
-            'deaths': 'sum',
-            'population': 'sum'
-        }).reset_index()
-        if len(weekly_rates) == 0 or weekly_rates['population'].sum() == 0:
-            return 0
-        weekly_rates['rate_per_100k'] = (weekly_rates['deaths'] / weekly_rates['population']) * 100000
-        return round(weekly_rates['rate_per_100k'].max(), 1)
-    elif metric_type == 'total_above_avg':
-        # Focus on 2020-2022 period for pandemic impact
-        pandemic_data = filtered_data[(filtered_data['year'] >= 2020) & (filtered_data['year'] <= 2022)]
-        positive_deviations = pandemic_data[pandemic_data['deviation_from_avg'] > 0]
-        return int(positive_deviations['deviation_from_avg'].sum())
-    elif metric_type == 'total_above_expected':
-        # Focus on 2020-2022 period for pandemic impact
-        pandemic_data = filtered_data[(filtered_data['year'] >= 2020) & (filtered_data['year'] <= 2022)]
-        positive_deviations = pandemic_data[pandemic_data['deviation_from_expected'] > 0]
-        return int(positive_deviations['deviation_from_expected'].sum())
+        if metric_type == 'total_deaths':
+            return int(filtered_data['deaths'].sum())
 
-    return 0
+        elif metric_type == 'deaths_per_100k_2015_2019':
+            # Calculate average annual deaths per 100k for 2015-2019 baseline period
+            if 'population' not in filtered_data.columns:
+                return 0.0
+            period_data = filtered_data[(filtered_data['year'] >= 2015) & (filtered_data['year'] <= 2019)]
+            if len(period_data) == 0:
+                return 0.0
+            total_deaths = period_data['deaths'].sum()
+            total_population_years = period_data['population'].sum()
+            if total_population_years == 0:
+                return 0.0
+            # Calculate annualized rate
+            years_in_period = 5  # 2015-2019
+            annual_rate = (total_deaths / total_population_years) * 100000 * len(period_data) / (
+                        years_in_period * 52.18)
+            return round(annual_rate, 1)
+
+        elif metric_type == 'deaths_per_100k_2020_2022':
+            # Calculate average annual deaths per 100k for 2020-2022 pandemic period
+            if 'population' not in filtered_data.columns:
+                return 0.0
+            period_data = filtered_data[(filtered_data['year'] >= 2020) & (filtered_data['year'] <= 2022)]
+            if len(period_data) == 0:
+                return 0.0
+            total_deaths = period_data['deaths'].sum()
+            total_population_years = period_data['population'].sum()
+            if total_population_years == 0:
+                return 0.0
+            # Calculate annualized rate
+            years_in_period = 3  # 2020-2022
+            annual_rate = (total_deaths / total_population_years) * 100000 * len(period_data) / (
+                        years_in_period * 52.18)
+            return round(annual_rate, 1)
+
+        elif metric_type == 'deaths_per_100k_2023_2025':
+            # Calculate average annual deaths per 100k for 2023-2025 recent period
+            if 'population' not in filtered_data.columns:
+                return 0.0
+            period_data = filtered_data[(filtered_data['year'] >= 2023) & (filtered_data['year'] <= 2025)]
+            if len(period_data) == 0:
+                return 0.0
+            total_deaths = period_data['deaths'].sum()
+            total_population_years = period_data['population'].sum()
+            if total_population_years == 0:
+                return 0.0
+            # Calculate annualized rate
+            years_in_period = len(period_data['year'].unique())  # Variable depending on data available
+            if years_in_period == 0:
+                return 0.0
+            annual_rate = (total_deaths / total_population_years) * 100000 * len(period_data) / (
+                        years_in_period * 52.18)
+            return round(annual_rate, 1)
+
+        elif metric_type == 'total_above_avg':
+            # Focus on 2020-2022 period for pandemic impact
+            pandemic_data = filtered_data[(filtered_data['year'] >= 2020) & (filtered_data['year'] <= 2022)]
+            positive_deviations = pandemic_data[pandemic_data['deviation_from_avg'] > 0]
+            return int(positive_deviations['deviation_from_avg'].sum())
+
+        elif metric_type == 'total_above_expected':
+            # Focus on 2020-2022 period for pandemic impact
+            pandemic_data = filtered_data[(filtered_data['year'] >= 2020) & (filtered_data['year'] <= 2022)]
+            positive_deviations = pandemic_data[pandemic_data['deviation_from_expected'] > 0]
+            return int(positive_deviations['deviation_from_expected'].sum())
+
+        return 0
+
+    except Exception as e:
+        st.error(f"Error calculating metric {metric_type}: {str(e)}")
+        return 0
 
 
 def main():
@@ -328,12 +363,23 @@ def main():
         key="view_selector"
     )
 
-    # Calculate metrics once
-    total_deaths = calculate_metric(current_data, selected_states, 'total_deaths')
-    avg_deaths_per_100k = calculate_metric(current_data, selected_states, 'avg_deaths_per_100k')
-    peak_deaths_per_100k = calculate_metric(current_data, selected_states, 'peak_deaths_per_100k')
-    total_above_avg = calculate_metric(current_data, selected_states, 'total_above_avg')
-    total_above_expected = calculate_metric(current_data, selected_states, 'total_above_expected')
+    # Calculate metrics once with error handling
+    try:
+        total_deaths = calculate_metric(current_data, selected_states, 'total_deaths')
+        baseline_rate = calculate_metric(current_data, selected_states, 'deaths_per_100k_2015_2019')
+        pandemic_rate = calculate_metric(current_data, selected_states, 'deaths_per_100k_2020_2022')
+        recent_rate = calculate_metric(current_data, selected_states, 'deaths_per_100k_2023_2025')
+        total_above_avg = calculate_metric(current_data, selected_states, 'total_above_avg')
+        total_above_expected = calculate_metric(current_data, selected_states, 'total_above_expected')
+    except Exception as e:
+        st.error(f"Error calculating metrics: {str(e)}")
+        # Set default values
+        total_deaths = 0
+        baseline_rate = 0.0
+        pandemic_rate = 0.0
+        recent_rate = 0.0
+        total_above_avg = 0
+        total_above_expected = 0
 
     # ADD SINGLE SIDEBAR METRIC SECTION BASED ON VIEW
     with st.sidebar:
@@ -343,8 +389,9 @@ def main():
         if view_choice == "Raw Deaths":
             st.metric("Total Deaths", f"{total_deaths:,}")
         elif view_choice == "Deaths per 100k":
-            st.metric("Average Annual Rate", f"{avg_deaths_per_100k}")
-            st.metric("Peak Weekly Rate", f"{peak_deaths_per_100k}")
+            st.metric("2015-2019 (Baseline)", f"{baseline_rate}")
+            st.metric("2020-2022 (Pandemic)", f"{pandemic_rate}")
+            st.metric("2023-2025 (Recent)", f"{recent_rate}")
         elif view_choice == "Deviation from Average":
             st.metric("Deaths Above Average (2020-2022)", f"{total_above_avg:,}")
         elif view_choice == "Deviation from Expected":
