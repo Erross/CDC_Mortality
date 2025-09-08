@@ -1,5 +1,99 @@
 # CDC All-Cause Mortality Data Compiler
 
+## How to Use This Project
+
+This project consists of two components that work together:
+
+### Step 1: Run the Data Compiler
+First, compile the mortality data from CDC sources:
+
+```bash
+python mortality_compiler.py
+```
+
+This will generate two CSV files:
+- `us_national_mortality_2015_present.csv`
+- `state_mortality_2015_present.csv`
+
+### Step 2: Run the Interactive Dashboard
+After the data is compiled, launch the visualization dashboard:
+
+```bash
+streamlit run mortality_dashboard.py
+```
+
+The dashboard will open in your web browser at `http://localhost:8501`
+
+**Requirements for Dashboard:**
+```bash
+pip install streamlit plotly pandas numpy
+```
+
+---
+
+## Mortality Data Dashboard
+
+The interactive Streamlit dashboard provides comprehensive visualization and analysis of the compiled mortality data with four distinct views:
+
+### Dashboard Features
+
+**Four Visualization Modes:**
+
+1. **Raw Deaths** - Absolute weekly death counts over time
+   - Shows total mortality trends by week and year
+   - Sidebar displays total deaths for selected time period and states
+
+2. **Deaths per 100k Population** - Population-normalized mortality rates
+   - Enables fair comparison between states of different sizes
+   - Sidebar shows average annual rates for three key periods:
+     - **2015-2019 (Baseline)**: Pre-pandemic mortality rates
+     - **2020-2022 (Pandemic)**: Pandemic period mortality rates  
+     - **2023-2025 (Recent)**: Post-pandemic mortality trends
+
+3. **Deviation from Average** - Comparison to 2015-2019 baseline
+   - Shows weekly deaths compared to pre-pandemic averages
+   - Highlights periods of excess or deficit mortality
+   - Sidebar displays total deaths above average during 2020-2022
+
+4. **Deviation from Expected** - Accounts for population growth
+   - Compares actual deaths to expected deaths assuming 1.31% annual growth
+   - Adjusts for normal demographic changes over time
+   - Sidebar shows total deaths above expected during 2020-2022
+
+### Interactive Controls
+
+**State Selection:**
+- Choose between state-level or national data
+- Multi-select specific states for comparison
+- "All States" option aggregates data across all states
+
+**Visual Design:**
+- **Color-coded years**: Green (2015-2019 baseline), Red (2020-2022 pandemic), Pink (2023-2024 recent), Blue (2025 current)
+- **Year labels**: Each trend line ends with its year for easy identification
+- **Hover details**: Interactive tooltips show exact values and context
+- **Zero reference lines**: Deviation charts include horizontal reference lines
+
+### Data Interpretation
+
+**Raw Deaths View:**
+- Use for understanding absolute mortality burden
+- Compare total deaths between states or time periods
+- Identify seasonal patterns and major mortality events
+
+**Deaths per 100k View:**
+- Essential for comparing states with different population sizes
+- Track changes in mortality rates over time
+- Compare baseline vs. pandemic vs. recent period rates
+
+**Deviation Views:**
+- Identify periods of excess mortality above historical norms
+- Distinguish between expected demographic changes and unusual events
+- Quantify the total impact of significant mortality events
+
+The dashboard automatically handles data aggregation, calculates population-weighted averages for multi-state selections, and provides real-time filtering based on user selections.
+
+---
+
 A comprehensive Python tool for compiling CDC all-cause mortality data from multiple sources, covering 2015 to present. This tool addresses gaps in publicly available state-level mortality data by combining historical archives with current API endpoints and a complete 2019 dataset.
 
 ## Overview
