@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fdd174da-1edf-48d2-98bd-8ffe3bf1338e" name="Changes" comment="Per capita view switched to show before during and after">
+    <list default="true" id="fdd174da-1edf-48d2-98bd-8ffe3bf1338e" name="Changes" comment="Readme update">
+      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ReadMe.md" beforeDir="false" afterPath="$PROJECT_DIR$/ReadMe.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mortality_dashboard.py" beforeDir="false" afterPath="$PROJECT_DIR$/mortality_dashboard.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -206,7 +207,15 @@
       <option name="project" value="LOCAL" />
       <updated>1757285455533</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="Readme update">
+      <option name="closed" value="true" />
+      <created>1757290950482</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1757290950482</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -219,6 +228,7 @@
     <MESSAGE value="Removed Console errors" />
     <MESSAGE value="Added per capita" />
     <MESSAGE value="Per capita view switched to show before during and after" />
-    <option name="LAST_COMMIT_MESSAGE" value="Per capita view switched to show before during and after" />
+    <MESSAGE value="Readme update" />
+    <option name="LAST_COMMIT_MESSAGE" value="Readme update" />
   </component>
 </project>

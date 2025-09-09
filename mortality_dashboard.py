@@ -105,25 +105,20 @@ def get_color_for_year(year):
 
 def add_baseline_calculations(df):
     """Add baseline calculations to the dataframe"""
-    # Calculate 2015-2019 average for each state/week combination
     baseline_avg = df[(df['year'] >= 2015) & (df['year'] <= 2019)].groupby(['state', 'mmwr_week'])[
         'deaths'].mean().reset_index()
     baseline_avg = baseline_avg.rename(columns={'deaths': 'avg_2015_2019'})
 
-    # Calculate 2015 baseline for each state/week combination
     baseline_2015 = df[df['year'] == 2015].groupby(['state', 'mmwr_week'])['deaths'].mean().reset_index()
     baseline_2015 = baseline_2015.rename(columns={'deaths': 'baseline_2015'})
 
-    # Merge baselines back to main dataframe
     df = df.merge(baseline_avg, on=['state', 'mmwr_week'], how='left')
     df = df.merge(baseline_2015, on=['state', 'mmwr_week'], how='left')
 
-    # Calculate expected deaths with 1.31% annual growth from 2015
     df['years_from_2015'] = df['year'] - 2015
     df['growth_factor'] = (1.0131) ** df['years_from_2015']
     df['expected_deaths'] = df['baseline_2015'] * df['growth_factor']
 
-    # Calculate deviations
     df['deviation_from_avg'] = df['deaths'] - df['avg_2015_2019']
     df['deviation_from_expected'] = df['deaths'] - df['expected_deaths']
 
@@ -133,7 +128,6 @@ def add_baseline_calculations(df):
 def create_chart(df, selected_states, chart_type):
     """Create charts based on type and state selection"""
 
-    # Filter to selected states
     if selected_states == ['All States']:
         plot_data = df.copy()
         title_suffix = "All States Combined"
@@ -141,27 +135,22 @@ def create_chart(df, selected_states, chart_type):
         plot_data = df[df['state'].isin(selected_states)].copy()
         title_suffix = f"{', '.join(selected_states)}"
 
-    # Aggregate data by year/week
     if chart_type == 'raw':
         agg_data = plot_data.groupby(['year', 'mmwr_week'])['deaths'].sum().reset_index()
         y_col = 'deaths'
         title = f'Raw Deaths per MMWR Week - {title_suffix}'
         y_title = 'Deaths'
     elif chart_type == 'deaths_per_100k':
-        # Check if population data is available
         if 'population' not in plot_data.columns:
             st.error(
                 "Population data not found. Please add a 'population' column to your data for per-capita calculations.")
             return go.Figure()
 
-        # For per-capita calculations, we need to aggregate differently
-        # Sum deaths and population, then calculate rate
         agg_data = plot_data.groupby(['year', 'mmwr_week']).agg({
             'deaths': 'sum',
             'population': 'sum'
         }).reset_index()
 
-        # Calculate deaths per 100k
         agg_data['deaths_per_100k'] = (agg_data['deaths'] / agg_data['population']) * 100000
         y_col = 'deaths_per_100k'
         title = f'Deaths per 100k Population per MMWR Week - {title_suffix}'
@@ -177,18 +166,14 @@ def create_chart(df, selected_states, chart_type):
         title = f'Deviation from Expected Deaths (1.31% Annual Growth) - {title_suffix}'
         y_title = 'Deviation from Expected Deaths'
 
-    # Create figure
     fig = go.Figure()
 
-    # Add zero line for deviation charts
     if chart_type in ['deviation_avg', 'deviation_expected']:
         fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
 
-    # Add lines for each year
     for year in sorted(agg_data['year'].unique()):
         year_data = agg_data[agg_data['year'] == year]
 
-        # Format the hover template based on chart type
         if chart_type == 'deaths_per_100k':
             hover_template = f'<b>Year {year}</b><br>Week: %{{x}}<br>{y_title}: %{{y:,.1f}}<extra></extra>'
         else:
@@ -204,7 +189,6 @@ def create_chart(df, selected_states, chart_type):
             showlegend=False
         ))
 
-        # Add year annotation at the end of each line
         if not year_data.empty:
             last_week = year_data['mmwr_week'].max()
             last_value = year_data[year_data['mmwr_week'] == last_week][y_col].iloc[0]
@@ -224,7 +208,7 @@ def create_chart(df, selected_states, chart_type):
         title=title,
         xaxis_title='MMWR Week',
         yaxis_title=y_title,
-        hovermode='x unified',
+        hovermode='closest',
         template='plotly_white',
         height=500,
         showlegend=False,
@@ -246,7 +230,6 @@ def calculate_metric(df, selected_states, metric_type):
             return int(filtered_data['deaths'].sum())
 
         elif metric_type == 'deaths_per_100k_2015_2019':
-            # Calculate average annual deaths per 100k for 2015-2019 baseline period
             if 'population' not in filtered_data.columns:
                 return 0.0
             period_data = filtered_data[(filtered_data['year'] >= 2015) & (filtered_data['year'] <= 2019)]
@@ -256,14 +239,12 @@ def calculate_metric(df, selected_states, metric_type):
             total_population_years = period_data['population'].sum()
             if total_population_years == 0:
                 return 0.0
-            # Calculate annualized rate
-            years_in_period = 5  # 2015-2019
+            years_in_period = 5
             annual_rate = (total_deaths / total_population_years) * 100000 * len(period_data) / (
                         years_in_period * 52.18)
             return round(annual_rate, 1)
 
         elif metric_type == 'deaths_per_100k_2020_2022':
-            # Calculate average annual deaths per 100k for 2020-2022 pandemic period
             if 'population' not in filtered_data.columns:
                 return 0.0
             period_data = filtered_data[(filtered_data['year'] >= 2020) & (filtered_data['year'] <= 2022)]
@@ -273,14 +254,12 @@ def calculate_metric(df, selected_states, metric_type):
             total_population_years = period_data['population'].sum()
             if total_population_years == 0:
                 return 0.0
-            # Calculate annualized rate
-            years_in_period = 3  # 2020-2022
+            years_in_period = 3
             annual_rate = (total_deaths / total_population_years) * 100000 * len(period_data) / (
                         years_in_period * 52.18)
             return round(annual_rate, 1)
 
         elif metric_type == 'deaths_per_100k_2023_2025':
-            # Calculate average annual deaths per 100k for 2023-2025 recent period
             if 'population' not in filtered_data.columns:
                 return 0.0
             period_data = filtered_data[(filtered_data['year'] >= 2023) & (filtered_data['year'] <= 2025)]
@@ -290,8 +269,7 @@ def calculate_metric(df, selected_states, metric_type):
             total_population_years = period_data['population'].sum()
             if total_population_years == 0:
                 return 0.0
-            # Calculate annualized rate
-            years_in_period = len(period_data['year'].unique())  # Variable depending on data available
+            years_in_period = len(period_data['year'].unique())
             if years_in_period == 0:
                 return 0.0
             annual_rate = (total_deaths / total_population_years) * 100000 * len(period_data) / (
@@ -299,13 +277,11 @@ def calculate_metric(df, selected_states, metric_type):
             return round(annual_rate, 1)
 
         elif metric_type == 'total_above_avg':
-            # Focus on 2020-2022 period for pandemic impact
             pandemic_data = filtered_data[(filtered_data['year'] >= 2020) & (filtered_data['year'] <= 2022)]
             positive_deviations = pandemic_data[pandemic_data['deviation_from_avg'] > 0]
             return int(positive_deviations['deviation_from_avg'].sum())
 
         elif metric_type == 'total_above_expected':
-            # Focus on 2020-2022 period for pandemic impact
             pandemic_data = filtered_data[(filtered_data['year'] >= 2020) & (filtered_data['year'] <= 2022)]
             positive_deviations = pandemic_data[pandemic_data['deviation_from_expected'] > 0]
             return int(positive_deviations['deviation_from_expected'].sum())
@@ -318,18 +294,14 @@ def calculate_metric(df, selected_states, metric_type):
 
 
 def main():
-    # Load data
     state_data, us_data = load_data()
 
     if state_data is None or us_data is None:
         st.stop()
 
-    # Header
     st.markdown('<h1 class="main-header">Mortality Data Dashboard</h1>', unsafe_allow_html=True)
 
-    # ALL SIDEBAR CONTENT GROUPED TOGETHER
     with st.sidebar:
-        # Dataset selection
         st.header("Dataset")
         dataset_choice = st.radio(
             "Choose dataset type:",
@@ -337,7 +309,6 @@ def main():
             label_visibility="collapsed"
         )
 
-        # State filter (only for state-level data)
         if dataset_choice == "State-Level Data":
             current_data = add_baseline_calculations(state_data)
             st.header("State Filter")
@@ -354,8 +325,6 @@ def main():
             current_data = add_baseline_calculations(us_data)
             selected_states = ['United States']
 
-    # MAIN CONTENT AREA
-    # Create radio button for view selection
     view_choice = st.radio(
         "Select View:",
         ["Raw Deaths", "Deaths per 100k", "Deviation from Average", "Deviation from Expected"],
@@ -363,54 +332,7 @@ def main():
         key="view_selector"
     )
 
-    # Calculate metrics once with error handling
-    try:
-        total_deaths = calculate_metric(current_data, selected_states, 'total_deaths')
-        baseline_rate = calculate_metric(current_data, selected_states, 'deaths_per_100k_2015_2019')
-        pandemic_rate = calculate_metric(current_data, selected_states, 'deaths_per_100k_2020_2022')
-        recent_rate = calculate_metric(current_data, selected_states, 'deaths_per_100k_2023_2025')
-        total_above_avg = calculate_metric(current_data, selected_states, 'total_above_avg')
-        total_above_expected = calculate_metric(current_data, selected_states, 'total_above_expected')
-    except Exception as e:
-        st.error(f"Error calculating metrics: {str(e)}")
-        # Set default values
-        total_deaths = 0
-        baseline_rate = 0.0
-        pandemic_rate = 0.0
-        recent_rate = 0.0
-        total_above_avg = 0
-        total_above_expected = 0
-
-    # ADD SINGLE SIDEBAR METRIC SECTION BASED ON VIEW
-    with st.sidebar:
-        st.markdown("---")
-        st.header("Current View")
-
-        if view_choice == "Raw Deaths":
-            st.metric("Total Deaths", f"{total_deaths:,}")
-        elif view_choice == "Deaths per 100k":
-            st.metric("2015-2019 (Baseline)", f"{baseline_rate}")
-            st.metric("2020-2022 (Pandemic)", f"{pandemic_rate}")
-            st.metric("2023-2025 (Recent)", f"{recent_rate}")
-        elif view_choice == "Deviation from Average":
-            st.metric("Deaths Above Average (2020-2022)", f"{total_above_avg:,}")
-        elif view_choice == "Deviation from Expected":
-            st.metric("Deaths Above Expected (2020-2022)", f"{total_above_expected:,}")
-
-        # Static sidebar info
-        st.markdown("---")
-        st.markdown("**Dataset Info**")
-        st.text(f"Records: {len(current_data):,}")
-        st.text(f"Years: {current_data['year'].min()}-{current_data['year'].max()}")
-
-        st.markdown("---")
-        st.markdown("**Year Colors**")
-        st.markdown('<span style="color: #2E8B57;">■</span> **2015-2019**: Baseline', unsafe_allow_html=True)
-        st.markdown('<span style="color: #DC143C;">■</span> **2020-2022**: Pandemic', unsafe_allow_html=True)
-        st.markdown('<span style="color: #FF69B4;">■</span> **2023-2024**: Recent', unsafe_allow_html=True)
-        st.markdown('<span style="color: #1E90FF;">■</span> **2025**: Current', unsafe_allow_html=True)
-
-    # SHOW CONTENT BASED ON SELECTED VIEW
+    # Handle view rendering based on selection
     if view_choice == "Raw Deaths":
         st.header("Raw Deaths per MMWR Week")
         st.markdown("This chart shows the absolute number of deaths per week over time.")
@@ -441,6 +363,54 @@ def main():
         st.info(
             "Interpretation: This accounts for normal population growth. Large positive deviations may indicate excess mortality events.")
 
+    try:
+        total_deaths = calculate_metric(current_data, selected_states, 'total_deaths')
+        baseline_rate = calculate_metric(current_data, selected_states, 'deaths_per_100k_2015_2019')
+        pandemic_rate = calculate_metric(current_data, selected_states, 'deaths_per_100k_2020_2022')
+        recent_rate = calculate_metric(current_data, selected_states, 'deaths_per_100k_2023_2025')
+        total_above_avg = calculate_metric(current_data, selected_states, 'total_above_avg')
+        total_above_expected = calculate_metric(current_data, selected_states, 'total_above_expected')
+    except Exception as e:
+        st.error(f"Error calculating metrics: {str(e)}")
+        total_deaths = 0
+        baseline_rate = 0.0
+        pandemic_rate = 0.0
+        recent_rate = 0.0
+        total_above_avg = 0
+        total_above_expected = 0
+
+    with st.sidebar:
+        st.markdown("---")
+        st.header("Current View")
+
+        if view_choice == "Raw Deaths":
+            st.metric("Total Deaths", f"{total_deaths:,}")
+        elif view_choice == "Deaths per 100k":
+            st.metric("2015-2019 (Baseline)", f"{baseline_rate}")
+            st.metric("2020-2022 (Pandemic)", f"{pandemic_rate}")
+            st.metric("2023-2025 (Recent)", f"{recent_rate}")
+        elif view_choice == "Deviation from Average":
+            st.metric("Deaths Above Average (2020-2022)", f"{total_above_avg:,}")
+        elif view_choice == "Deviation from Expected":
+            st.metric("Deaths Above Expected (2020-2022)", f"{total_above_expected:,}")
+
+        st.markdown("---")
+        st.markdown("**Dataset Info**")
+        st.text(f"Records: {len(current_data):,}")
+        st.text(f"Years: {current_data['year'].min()}-{current_data['year'].max()}")
+
+        st.markdown("---")
+        st.markdown("**Year Colors**")
+        st.markdown('<span style="color: #2E8B57;">■</span> **2015-2019**: Baseline', unsafe_allow_html=True)
+        st.markdown('<span style="color: #DC143C;">■</span> **2020-2022**: Pandemic', unsafe_allow_html=True)
+        st.markdown('<span style="color: #FF69B4;">■</span> **2023-2024**: Recent', unsafe_allow_html=True)
+        st.markdown('<span style="color: #1E90FF;">■</span> **2025**: Current', unsafe_allow_html=True)
+
 
 if __name__ == "__main__":
     main()
+
+# Version: No Map v4.0 - Created September 09, 2025 at 9:10 PM UTC
+# - Completely removed all map functionality to create clean base
+# - Working dashboard with Raw Deaths, Deaths per 100k, Deviation from Average, Deviation from Expected
+# - Ready for proper map rebuild from scratch
